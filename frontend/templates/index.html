@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PCAP Analyzer</title>
+<script src="https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;700;800&display=swap');
+
+:root {
+  --bg: #0a0d12;
+  --bg2: #0f1318;
+  --bg3: #151b24;
+  --bg4: #1c2430;
+  --border: #1e2d3d;
+  --border2: #2a3f55;
+  --accent: #00d4ff;
+  --accent2: #0099bb;
+  --green: #00ff88;
+  --green2: #00cc6a;
+  --amber: #ffb800;
+  --red: #ff4466;
+  --purple: #9966ff;
+  --text: #c8d8e8;
+  --text2: #7a9ab8;
+  --text3: #4a6a88;
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Syne', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* HEADER */
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+.header-status { color: var(--text3); font-size: 11px; }
+
+/* UPLOAD ZONE */
+#upload-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 52px);
+  padding: 40px;
+}
+
+.upload-zone {
+  border: 1px dashed var(--border2);
+  border-radius: 8px;
+  padding: 60px 80px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg2);
+  max-width: 560px;
+  width: 100%;
+}
+
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(0,212,255,0.04);
+}
+
+.upload-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.upload-title {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.upload-sub { color: var(--text3); font-size: 12px; line-height: 1.8; }
+
+.upload-btn {
+  margin-top: 24px;
+  padding: 10px 28px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: background 0.15s;
+}
+.upload-btn:hover { background: var(--accent2); }
+
+#file-input { display: none; }
+
+/* PROGRESS */
+.progress-bar {
+  margin-top: 20px;
+  height: 2px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  width: 100%;
+  display: none;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  animation: loading 1.5s ease infinite;
+}
+@keyframes loading {
+  0%{width:0%;margin-left:0%;}
+  50%{width:60%;margin-left:20%;}
+  100%{width:0%;margin-left:100%;}
+}
+
+/* MAIN ANALYZER */
+#analyzer-section { display: none; }
+
+/* TABS */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  padding: 0 24px;
+  gap: 0;
+  position: sticky;
+  top: 52px;
+  z-index: 90;
+}
+
+.tab {
+  padding: 14px 20px;
+  cursor: pointer;
+  color: var(--text3);
+  font-size: 12px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-badge {
+  background: var(--bg4);
+  color: var(--text2);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+}
+
+.tab.active .tab-badge { background: rgba(0,212,255,0.15); color: var(--accent); }
+
+.tab-icon { font-size: 14px; }
+
+/* FILE BAR */
+.file-bar {
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.file-bar .filename { color: var(--accent); font-weight: 500; }
+.file-bar .stat { display: flex; align-items: center; gap: 4px; }
+.file-bar .stat-val { color: var(--text); }
+
+.new-file-btn {
+  margin-left: auto;
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.new-file-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* PANELS */
+.panel {
+  display: none;
+  padding: 24px;
+  min-height: calc(100vh - 52px - 43px - 37px);
+}
+.panel.active { display: block; }
+
+/* SIP LADDER */
+.sip-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.call-selector {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+.call-selector:focus { outline: 1px solid var(--accent); }
+
+.sip-label { color: var(--text3); font-size: 11px; }
+
+#ladder-container {
+  overflow-x: auto;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+#ladder-svg { display: block; }
+
+/* TLS */
+.tls-streams { display: flex; flex-direction: column; gap: 16px; }
+
+.tls-stream-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tls-stream-header {
+  padding: 14px 18px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.tls-stream-header:hover { background: var(--bg4); }
+
+.tls-badge {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.badge-tls12 { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid rgba(0,255,136,0.2); }
+.badge-tls13 { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
+.badge-tls10, .badge-tls11 { background: rgba(255,184,0,0.1); color: var(--amber); border: 1px solid rgba(255,184,0,0.2); }
+.badge-cert { background: rgba(153,102,255,0.1); color: var(--purple); border: 1px solid rgba(153,102,255,0.2); }
+
+.tls-endpoints { color: var(--text); font-size: 12px; font-weight: 500; }
+.tls-meta { margin-left: auto; color: var(--text3); font-size: 11px; text-align: right; }
+
+.tls-handshake-list { padding: 16px 18px; }
+
+.hs-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.hs-step:last-child { border-bottom: none; }
+
+.hs-time { color: var(--text3); width: 70px; flex-shrink: 0; }
+.hs-direction { width: 160px; flex-shrink: 0; color: var(--text2); font-size: 10px; }
+.hs-type {
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+.hs-ClientHello { color: var(--accent); }
+.hs-ServerHello { color: var(--green); }
+.hs-Certificate { color: var(--purple); }
+.hs-Finished { color: var(--amber); }
+.hs-default { color: var(--text2); }
+
+.cert-btn {
+  margin-left: auto;
+  padding: 3px 10px;
+  background: rgba(153,102,255,0.1);
+  border: 1px solid rgba(153,102,255,0.3);
+  color: var(--purple);
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cert-btn:hover { background: rgba(153,102,255,0.2); }
+
+/* T38 */
+.t38-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.info-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+}
+.info-card-label { color: var(--text3); font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+.info-card-value { color: var(--text); font-size: 18px; font-weight: 600; }
+
+.fax-sessions { display: flex; flex-direction: column; gap: 12px; }
+
+.fax-session-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 18px;
+}
+
+.fax-page-preview {
+  margin-top: 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 40px;
+  text-align: center;
+  color: var(--text3);
+  font-size: 11px;
+}
+
+.fax-image {
+  max-width: 100%;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  display: none;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  width: 100%;
+  max-width: 780px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--purple);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px;
+}
+.modal-close:hover { color: var(--text); }
+
+.modal-body {
+  overflow-y: auto;
+  padding: 20px;
+  flex: 1;
+}
+
+.cert-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.cert-tab {
+  padding: 6px 14px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text3);
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cert-tab.active { background: rgba(153,102,255,0.1); border-color: var(--purple); color: var(--purple); }
+
+.cert-pem, .cert-text {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px;
+  font-size: 10.5px;
+  line-height: 1.7;
+  color: var(--green);
+  white-space: pre-wrap;
+  word-break: break-all;
+  display: none;
+}
+.cert-pem.active, .cert-text.active { display: block; }
+
+/* EMPTY STATES */
+.empty {
+  text-align: center;
+  padding: 80px 40px;
+  color: var(--text3);
+}
+.empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+.empty-title { font-family: var(--display); font-size: 18px; color: var(--text2); margin-bottom: 8px; }
+.empty-sub { font-size: 12px; line-height: 1.8; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+/* RESPONSIVE */
+@media (max-width: 600px) {
+  .upload-zone { padding: 40px 24px; }
+  .tabs { overflow-x: auto; }
+  .panel { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-dot"></span>
+    PCAP Analyzer
+  </div>
+  <div class="header-status" id="header-status">Drop a capture file to begin</div>
+</header>
+
+<!-- UPLOAD -->
+<section id="upload-section">
+  <div class="upload-zone" id="drop-zone">
+    <div class="upload-icon">📡</div>
+    <div class="upload-title">Drop your PCAP file</div>
+    <div class="upload-sub">
+      Supports .pcap · .pcapng · .cap<br>
+      SIP ladder · T.38 Fax · TLS inspection
+    </div>
+    <button class="upload-btn" onclick="document.getElementById('file-input').click()">Choose File</button>
+    <div class="progress-bar" id="progress-bar"><div class="progress-fill"></div></div>
+  </div>
+  <input type="file" id="file-input" accept=".pcap,.pcapng,.cap">
+</section>
+
+<!-- ANALYZER -->
+<section id="analyzer-section">
+  <div class="file-bar" id="file-bar">
+    <span>📁</span>
+    <span class="filename" id="filename-display">-</span>
+    <span class="stat">Packets: <span class="stat-val" id="stat-packets">-</span></span>
+    <span class="stat">SIP msgs: <span class="stat-val" id="stat-sip">-</span></span>
+    <span class="stat">TLS streams: <span class="stat-val" id="stat-tls">-</span></span>
+    <button class="new-file-btn" onclick="resetToUpload()">↑ New File</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('sip', this)">
+      <span class="tab-icon">🔀</span> SIP Ladder
+      <span class="tab-badge" id="badge-sip">0</span>
+    </div>
+    <div class="tab" onclick="switchTab('t38', this)">
+      <span class="tab-icon">📠</span> T.38 Fax
+      <span class="tab-badge" id="badge-t38">0</span>
+    </div>
+    <div class="tab" onclick="switchTab('tls', this)">
+      <span class="tab-icon">🔒</span> TLS Handshakes
+      <span class="tab-badge" id="badge-tls">0</span>
+    </div>
+  </div>
+
+  <!-- SIP PANEL -->
+  <div class="panel active" id="panel-sip">
+    <div class="sip-controls">
+      <span class="sip-label">Call-ID:</span>
+      <select class="call-selector" id="call-selector" onchange="renderLadder()">
+        <option value="all">All Calls</option>
+      </select>
+      <span class="sip-label" id="sip-stats-label"></span>
+    </div>
+    <div id="ladder-container">
+      <svg id="ladder-svg"></svg>
+    </div>
+  </div>
+
+  <!-- T38 PANEL -->
+  <div class="panel" id="panel-t38">
+    <div class="t38-info" id="t38-info"></div>
+    <div class="fax-sessions" id="fax-sessions"></div>
+  </div>
+
+  <!-- TLS PANEL -->
+  <div class="panel" id="panel-tls">
+    <div class="tls-streams" id="tls-streams"></div>
+  </div>
+</section>
+
+<!-- CERT MODAL -->
+<div class="modal-overlay" id="cert-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">🔐 Certificate Details</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <div style="color:var(--text3); text-align:center; padding:40px;">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let pcapData = null;
+
+// ───────────── UPLOAD ─────────────
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) uploadFile(file);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) uploadFile(e.target.files[0]); });
+
+function uploadFile(file) {
+  document.getElementById('progress-bar').style.display = 'block';
+  document.querySelector('.upload-btn').textContent = 'Analyzing...';
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  fetch('/api/upload', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { alert('Error: ' + data.error); resetUploadUI(); return; }
+      pcapData = data;
+      document.getElementById('filename-display').textContent = file.name;
+      initAnalyzer(data);
+    })
+    .catch(err => { alert('Upload failed: ' + err); resetUploadUI(); });
+}
+
+function resetUploadUI() {
+  document.getElementById('progress-bar').style.display = 'none';
+  document.querySelector('.upload-btn').textContent = 'Choose File';
+}
+
+function resetToUpload() {
+  document.getElementById('upload-section').style.display = 'flex';
+  document.getElementById('analyzer-section').style.display = 'none';
+  resetUploadUI();
+  fileInput.value = '';
+}
+
+// ───────────── INIT ─────────────
+function initAnalyzer(data) {
+  document.getElementById('upload-section').style.display = 'none';
+  document.getElementById('analyzer-section').style.display = 'block';
+
+  const sipCount = data.sip?.messages?.length || 0;
+  const t38Count = data.t38?.packet_count || 0;
+  const tlsCount = data.tls?.streams?.length || 0;
+
+  document.getElementById('stat-packets').textContent = data.summary?.packet_count || '?';
+  document.getElementById('stat-sip').textContent = sipCount;
+  document.getElementById('stat-tls').textContent = tlsCount;
+  document.getElementById('badge-sip').textContent = sipCount;
+  document.getElementById('badge-t38').textContent = t38Count;
+  document.getElementById('badge-tls').textContent = tlsCount;
+  document.getElementById('header-status').textContent = 'Analyzing capture';
+
+  initSIP(data.sip);
+  initT38(data.t38);
+  initTLS(data.tls);
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'sip') renderLadder();
+}
+
+// ───────────── SIP LADDER ─────────────
+let sipData = null;
+
+function initSIP(sip) {
+  sipData = sip;
+  if (!sip || !sip.messages || sip.messages.length === 0) return;
+
+  const sel = document.getElementById('call-selector');
+  sel.innerHTML = '<option value="all">All Calls</option>';
+  Object.keys(sip.calls).forEach(cid => {
+    const opt = document.createElement('option');
+    opt.value = cid;
+    opt.textContent = cid.length > 40 ? cid.slice(0, 40) + '…' : cid;
+    sel.appendChild(opt);
+  });
+
+  renderLadder();
+}
+
+function renderLadder() {
+  if (!sipData) return;
+  const sel = document.getElementById('call-selector').value;
+  let msgs = sel === 'all' ? sipData.messages : (sipData.calls[sel] || []);
+  
+  if (msgs.length === 0) {
+    document.getElementById('ladder-svg').innerHTML = '';
+    return;
+  }
+
+  // Collect endpoints from visible messages
+  const epSet = new Set();
+  msgs.forEach(m => { epSet.add(m.src); epSet.add(m.dst); });
+  const endpoints = Array.from(epSet);
+
+  document.getElementById('sip-stats-label').textContent = `${msgs.length} messages · ${endpoints.length} endpoints`;
+
+  const COL_W = 180;
+  const ROW_H = 44;
+  const MARGIN_LEFT = 20;
+  const HEADER_H = 60;
+  const LABEL_W = 60;
+
+  const svgW = Math.max(900, MARGIN_LEFT + endpoints.length * COL_W + LABEL_W);
+  const svgH = HEADER_H + msgs.length * ROW_H + 40;
+
+  const epX = ep => MARGIN_LEFT + LABEL_W / 2 + endpoints.indexOf(ep) * COL_W + COL_W / 2;
+
+  let svg = `<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" style="background:#0f1318">`;
+  svg += `<defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#00d4ff"/>
+    </marker>
+    <marker id="arr-red" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#ff4466"/>
+    </marker>
+    <marker id="arr-green" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#00ff88"/>
+    </marker>
+  </defs>`;
+
+  // Endpoint headers
+  endpoints.forEach((ep, i) => {
+    const x = epX(ep);
+    const parts = ep.split(':');
+    const ip = parts[0];
+    const port = parts[1] || '';
+    svg += `<rect x="${x - 80}" y="10" width="160" height="38" rx="4" fill="#1c2430" stroke="#1e2d3d" stroke-width="1"/>`;
+    svg += `<text x="${x}" y="26" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#c8d8e8" font-weight="600">${escXml(ip)}</text>`;
+    svg += `<text x="${x}" y="40" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#7a9ab8">:${escXml(port)}</text>`;
+    // Vertical line
+    svg += `<line x1="${x}" y1="48" x2="${x}" y2="${svgH - 20}" stroke="#1e2d3d" stroke-width="1" stroke-dasharray="4,4"/>`;
+  });
+
+  // Messages
+  msgs.forEach((msg, i) => {
+    const y = HEADER_H + i * ROW_H + ROW_H / 2;
+    const srcX = epX(msg.src);
+    const dstX = epX(msg.dst);
+    const timeStr = parseFloat(msg.time).toFixed(3) + 's';
+
+    // Determine color/marker
+    let color = '#00d4ff';
+    let marker = 'arr';
+    let isBye = false;
+
+    if (msg.is_response) {
+      const code = msg.label.match(/^SIP\/\d+\.\d+ (\d+)/);
+      const statusCode = code ? parseInt(code[1]) : 0;
+      if (statusCode >= 200 && statusCode < 300) { color = '#00ff88'; marker = 'arr-green'; }
+      else if (statusCode >= 400) { color = '#ff4466'; marker = 'arr-red'; }
+      else { color = '#ffb800'; marker = 'arr'; }
+    } else {
+      if (msg.method === 'BYE' || msg.method === 'CANCEL') { color = '#ff4466'; marker = 'arr-red'; isBye = true; }
+      else if (msg.method === 'INVITE') { color = '#00ff88'; marker = 'arr-green'; }
+      else if (msg.method === 'ACK') { color = '#00d4ff'; }
+    }
+
+    // Clickable row background (highlights on hover, opens SIP message on click)
+    const frameNo = parseInt(msg.frame || 0);
+    svg += `<rect x="0" y="${y - ROW_H/2}" width="${svgW}" height="${ROW_H}"
+      fill="${i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0)'}"
+      style="cursor:pointer"
+      onmouseover="this.setAttribute('fill','rgba(0,212,255,0.06)')"
+      onmouseout="this.setAttribute('fill','${i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0)'}')"
+      onclick="showSipMessage(${frameNo})"/>`;
+
+    // Frame # label on the right edge
+    svg += `<text x="${svgW - 8}" y="${y + 4}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="9" fill="#2a3f55">#${escXml(String(frameNo))}</text>`;
+
+    // Time label
+    svg += `<text x="${MARGIN_LEFT}" y="${y + 4}" font-family="JetBrains Mono,monospace" font-size="9" fill="#4a6a88">${escXml(timeStr)}</text>`;
+
+    // Arrow line
+    if (srcX !== dstX) {
+      const dir = srcX < dstX ? 1 : -1;
+      const x1 = srcX + (dir > 0 ? 8 : -8);
+      const x2 = dstX - (dir > 0 ? 12 : -12);
+      svg += `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${color}" stroke-width="1.5" marker-end="url(#${marker})"/>`;
+    } else {
+      // Self-loop
+      svg += `<path d="M${srcX},${y - 10} Q${srcX + 60},${y - 10} ${srcX + 60},${y} Q${srcX + 60},${y + 10} ${srcX},${y + 10}" fill="none" stroke="${color}" stroke-width="1.5" marker-end="url(#${marker})"/>`;
+    }
+
+    // Label
+    const midX = (srcX + dstX) / 2;
+    const labelX = srcX === dstX ? srcX + 30 : midX;
+    const shortLabel = msg.label.length > 38 ? msg.label.slice(0, 38) + '…' : msg.label;
+
+    svg += `<rect x="${labelX - 90}" y="${y - 14}" width="180" height="16" rx="2" fill="#0a0d12" opacity="0.85"/>`;
+    svg += `<text x="${labelX}" y="${y - 2}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="${color}" font-weight="600">${escXml(shortLabel)}</text>`;
+
+    // CSeq below
+    if (msg.cseq) {
+      svg += `<text x="${labelX}" y="${y + 11}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#4a6a88">${escXml(msg.cseq)}</text>`;
+    }
+  });
+
+  svg += '</svg>';
+  document.getElementById('ladder-container').innerHTML = svg;
+}
+
+function escXml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ───────────── SIP MESSAGE DETAIL ─────────────
+function showSipMessage(frameNo) {
+  if (!frameNo) return;
+  openModal(`📨 SIP Message — Frame #${frameNo}`,
+    '<div style="color:var(--text3);text-align:center;padding:40px;">⏳ Loading…</div>');
+
+  fetch(`/api/sip/frame/${frameNo}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        document.getElementById('modal-body').innerHTML =
+          `<div style="color:var(--red);padding:20px;">Error: ${escHtml(data.error)}</div>`;
+        return;
+      }
+      const text = data.text || '(no SIP data returned for this frame)';
+      document.getElementById('modal-body').innerHTML =
+        `<pre style="font-size:11px;line-height:1.6;color:var(--green);white-space:pre-wrap;word-break:break-all;">${escHtml(text)}</pre>`;
+    })
+    .catch(err => {
+      document.getElementById('modal-body').innerHTML =
+        `<div style="color:var(--red);padding:20px;">Fetch error: ${escHtml(String(err))}</div>`;
+    });
+}
+
+function openModal(title, bodyHtml) {
+  document.getElementById('modal-title').innerHTML = title;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  document.getElementById('cert-modal').classList.add('open');
+}
+
+// ───────────── T.38 ─────────────
+function t38DebugSection(d) {
+  if (!d) return '';
+  return `
+    <div style="margin-top:16px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:16px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <span style="color:var(--amber);font-weight:600;">🔍 tshark diagnostics</span>
+        <button onclick="loadT38RawDebug(this)" style="padding:3px 10px;background:transparent;border:1px solid var(--border2);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:11px;cursor:pointer;">Load raw debug output</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:12px;font-size:11px;">
+        <div><span style="color:var(--text3);">Filter used: </span><span style="color:var(--accent);">${escHtml(d.filter_used||d.filter_tried||'?')}</span></div>
+        <div><span style="color:var(--text3);">T.38 fields: </span><span style="color:var(--green);">${escHtml(d.t38_field_name||'N/A')}</span></div>
+        <div><span style="color:var(--text3);">Packets found: </span><span style="color:var(--text);">${d.packets_found??'?'}</span></div>
+      </div>
+      ${d.tshark_stderr ? `<div style="font-size:11px;color:var(--red);margin-bottom:8px;">tshark stderr: <code>${escHtml(d.tshark_stderr)}</code></div>` : ''}
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Protocol hierarchy:</div>
+      <pre style="font-size:10px;color:var(--text2);white-space:pre-wrap;background:var(--bg);padding:10px;border-radius:4px;border:1px solid var(--border);">${escHtml(d.protocol_hierarchy||'(none)')}</pre>
+      <div id="t38-raw-debug"></div>
+    </div>`;
+}
+
+function loadT38RawDebug(btn) {
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  fetch('/api/debug/t38')
+    .then(r => r.json())
+    .then(data => {
+      const el = document.getElementById('t38-raw-debug');
+      if (!el) return;
+      let html = `<div style="margin-top:12px;font-size:11px;color:var(--amber);margin-bottom:8px;">Raw tshark output (${data.t38_frame_count} t38 frames found):</div>`;
+      const sections = [
+        ['t38 filter — basic fields', data.t38_filter_basic],
+        ['udptl filter — basic fields', data.udptl_filter_basic],
+        ['t38 filter — T.38 fields v1', data.t38_filter_fields_v1],
+        ['t38 filter — T.38 fields v2', data.t38_filter_fields_v2],
+      ];
+      sections.forEach(([label, d]) => {
+        if (!d) return;
+        html += `<div style="margin-bottom:10px;">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">${escHtml(label)}</div>
+          <pre style="font-size:10px;color:var(--green);white-space:pre-wrap;background:var(--bg);padding:8px;border-radius:4px;border:1px solid var(--border);max-height:200px;overflow-y:auto;">${escHtml(d.stdout||'(empty)')}</pre>
+          ${d.stderr ? `<pre style="font-size:10px;color:var(--red);white-space:pre-wrap;margin-top:2px;">${escHtml(d.stderr)}</pre>` : ''}
+        </div>`;
+      });
+      el.innerHTML = html;
+      btn.style.display = 'none';
+    })
+    .catch(err => {
+      btn.textContent = 'Error: ' + String(err);
+    });
+}
+
+function initT38(t38) {
+  const infoEl = document.getElementById('t38-info');
+  const sessEl = document.getElementById('fax-sessions');
+
+  if (!t38 || !t38.has_fax_data) {
+    infoEl.innerHTML = '';
+    sessEl.innerHTML = `
+      <div class="empty"><div class="empty-icon">📠</div><div class="empty-title">No T.38 Traffic</div><div class="empty-sub">No T.38 fax packets detected in this capture.</div></div>
+      ${t38DebugSection(t38?.debug)}`;
+    return;
+  }
+
+  infoEl.innerHTML = `
+    <div class="info-card"><div class="info-card-label">T.38 Packets</div><div class="info-card-value">${t38.packet_count}</div></div>
+    <div class="info-card"><div class="info-card-label">Fax Sessions</div><div class="info-card-value">${t38.sessions?.length || 0}</div></div>
+  `;
+
+  let html = '';
+  (t38.sessions || []).forEach((s, si) => {
+    const pkts = s.packets || [];
+    const hasTiff = !!s.tiff_b64;
+    html += `<div class="fax-session-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <span style="color:var(--amber);font-weight:600;">📠 Session ${si+1}</span>
+        <span style="color:var(--text3);font-size:11px;">${escHtml(s.src)} ↔ ${escHtml(s.dst)}</span>
+        <span style="margin-left:auto;background:rgba(255,184,0,0.1);border:1px solid rgba(255,184,0,0.2);color:var(--amber);padding:2px 8px;border-radius:3px;font-size:10px;">${s.packet_count} packets · ${s.data_chunks?.length || 0} data chunks · ${escHtml(s.image_mode||'?')}</span>
+      </div>
+      <div id="t38-fax-${si}" style="margin-bottom:12px;"></div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <thead><tr style="color:var(--text3);border-bottom:1px solid var(--border);">
+            <th style="padding:5px 8px;text-align:left;font-weight:500;">Frame #</th>
+            <th style="padding:5px 8px;text-align:left;font-weight:500;">Time</th>
+            <th style="padding:5px 8px;text-align:left;font-weight:500;">Direction</th>
+            <th style="padding:5px 8px;text-align:left;font-weight:500;">Msg Type</th>
+            <th style="padding:5px 8px;text-align:left;font-weight:500;">Field Type</th>
+          </tr></thead>
+          <tbody>`;
+    pkts.forEach(p => {
+      const dir = (p.src === s.src) ? `${escHtml(p.src)} →` : `← ${escHtml(p.src)}`;
+      html += `<tr style="border-bottom:1px solid rgba(30,45,61,0.5);">
+        <td style="padding:4px 8px;color:var(--accent);font-weight:600;">${escHtml(p.frame)}</td>
+        <td style="padding:4px 8px;color:var(--text3);">${parseFloat(p.time||0).toFixed(4)}s</td>
+        <td style="padding:4px 8px;color:var(--text2);">${dir}</td>
+        <td style="padding:4px 8px;color:var(--text);">${escHtml(p.msg_type)}</td>
+        <td style="padding:4px 8px;color:var(--text3);">${escHtml(p.field_type)}</td>
+      </tr>`;
+    });
+    if (!pkts.length) {
+      html += `<tr><td colspan="5" style="padding:12px 8px;color:var(--text3);text-align:center;">No packet detail available</td></tr>`;
+    }
+    html += `</tbody></table></div></div>`;
+  });
+
+  sessEl.innerHTML = (html || `<div class="empty"><div class="empty-title">No fax sessions found</div></div>`) + t38DebugSection(t38.debug);
+
+  // Render fax images after DOM is ready
+  (t38.sessions || []).forEach((s, si) => {
+    const el = document.getElementById(`t38-fax-${si}`);
+    if (!el) return;
+    if (s.tiff_b64) {
+      renderT38Tiff(s.tiff_b64, el);
+    } else {
+      const mode = s.image_mode || 'none';
+      let msg = 'No fax image data could be extracted.';
+      if (mode === 'none') msg = 'No image data found in T.38 fields — click "Load raw debug output" below to diagnose which field names tshark is using.';
+      else if (mode === 'ecm') msg = 'ECM mode detected but HDLC reassembly failed. Raw data may be available — try the debug output below.';
+      el.innerHTML = `<div class="fax-page-preview"><div style="color:var(--text3);font-size:11px;">${escHtml(msg)}</div></div>`;
+    }
+  });
+}
+
+function renderT38Tiff(tiffB64, containerEl) {
+  try {
+    const binary = atob(tiffB64);
+    const bytes  = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+    const ifds = UTIF.decode(bytes.buffer);
+    if (!ifds || !ifds.length) throw new Error('No IFDs decoded');
+    UTIF.decodeImage(bytes.buffer, ifds[0]);
+    const rgba = UTIF.toRGBA8(ifds[0]);
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = ifds[0].width;
+    canvas.height = ifds[0].height;
+    canvas.style.cssText = 'max-width:100%;border:1px solid var(--border);border-radius:4px;background:#fff;';
+
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.createImageData(canvas.width, canvas.height);
+    imgData.data.set(rgba);
+    ctx.putImageData(imgData, 0, 0);
+
+    containerEl.innerHTML = '';
+    containerEl.appendChild(canvas);
+  } catch (e) {
+    // TIFF decode failed — offer download link
+    const dataUrl = `data:image/tiff;base64,${tiffB64}`;
+    containerEl.innerHTML = `<div class="fax-page-preview">
+      <div style="margin-bottom:8px;color:var(--text2);">Fax image extracted but could not be rendered inline.</div>
+      <a href="${dataUrl}" download="fax.tiff" style="color:var(--accent);font-size:12px;">⬇ Download fax.tiff</a>
+      <div style="color:var(--text3);font-size:10px;margin-top:6px;">${escHtml(String(e))}</div>
+    </div>`;
+  }
+}
+
+// ───────────── TLS ─────────────
+function initTLS(tls) {
+  const el = document.getElementById('tls-streams');
+
+  if (!tls || tls.streams.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🔒</div><div class="empty-title">No TLS Traffic</div><div class="empty-sub">No TLS handshakes found in this capture.<br>If traffic is encrypted at layer 2, try exporting a decrypted PCAP first.</div></div>`;
+    return;
+  }
+
+  const tlsVerBadgeClass = v => {
+    if (!v) return 'badge-default';
+    if (v.includes('1.3')) return 'badge-tls13';
+    if (v.includes('1.2')) return 'badge-tls12';
+    return 'badge-tls10';
+  };
+
+  let html = '';
+  tls.streams.forEach((stream, si) => {
+    const ver = stream.tls_version || 'Unknown';
+    const eps = stream.endpoints.join(' ↔ ');
+    const verBadge = tlsVerBadgeClass(ver);
+
+    html += `<div class="tls-stream-card">
+      <div class="tls-stream-header" onclick="toggleStream(${si})">
+        <span class="tls-badge ${verBadge}">${escHtml(ver)}</span>
+        ${stream.has_cert ? `<span class="tls-badge badge-cert">CERT</span>` : ''}
+        <span class="tls-endpoints">${escHtml(eps)}</span>
+        <div class="tls-meta">
+          ${stream.handshakes.length} messages<br>
+          ${stream.cipher_suite ? `<span style="font-size:10px;">${escHtml(stream.cipher_suite)}</span>` : ''}
+        </div>
+        <span style="color:var(--text3);margin-left:8px;">▾</span>
+      </div>
+      <div class="tls-handshake-list" id="stream-${si}" style="display:none">`;
+
+    stream.handshakes.forEach(hs => {
+      const typeClass = `hs-${hs.type}`;
+      html += `<div class="hs-step">
+        <span style="color:var(--text3);width:52px;flex-shrink:0;font-size:10px;">#${escHtml(hs.frame||'')}</span>
+        <span class="hs-time">${parseFloat(hs.time||0).toFixed(3)}s</span>
+        <span class="hs-direction">${escHtml(hs.src)} →</span>
+        <span class="hs-type ${typeClass} hs-default">${escHtml(hs.type)}</span>
+        ${hs.type === 'Certificate' && stream.has_cert
+          ? `<button class="cert-btn" onclick="showCert(${si})">🔐 View Certificate</button>`
+          : ''}
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+function toggleStream(si) {
+  const el = document.getElementById('stream-' + si);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// ───────────── CERT MODAL ─────────────
+function showCert(streamIndex) {
+  openModal('🔐 Certificate Details',
+    '<div style="color:var(--text3);text-align:center;padding:40px;">⏳ Loading certificate data…</div>');
+
+  fetch(`/api/cert/${streamIndex}`)
+    .then(r => r.json())
+    .then(data => renderCertModal(data))
+    .catch(err => {
+      document.getElementById('modal-body').innerHTML = `<div style="color:var(--red);padding:20px;">Error: ${escHtml(String(err))}</div>`;
+    });
+}
+
+function renderCertModal(data) {
+  const certs = data.certs || [];
+
+  if (certs.length === 0) {
+    document.getElementById('modal-body').innerHTML = `
+      <div style="color:var(--text3);text-align:center;padding:40px;">
+        <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
+        <div>Certificate data could not be extracted.<br>The stream may be using session resumption or the cert packet was not captured.</div>
+      </div>`;
+    return;
+  }
+
+  let html = `<div style="margin-bottom:12px;color:var(--text3);font-size:11px;">${certs.length} certificate(s) in chain</div>`;
+
+  certs.forEach((cert, ci) => {
+    html += `<div style="margin-bottom:20px;border:1px solid var(--border);border-radius:6px;overflow:hidden;">
+      <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--purple);">
+        Certificate ${ci + 1}
+      </div>
+      <div style="padding:14px;">`;
+
+    if (cert.text) {
+      // Full parse succeeded — show Parsed + PEM tabs
+      html += `<div class="cert-tabs">
+        <button class="cert-tab active" onclick="switchCertTab(this,'text-${ci}','pem-${ci}')">Parsed</button>
+        <button class="cert-tab" onclick="switchCertTab(this,'pem-${ci}','text-${ci}')">PEM</button>
+      </div>
+      <pre class="cert-text active" id="text-${ci}">${escHtml(cert.text)}</pre>
+      <pre class="cert-pem" id="pem-${ci}">${escHtml(cert.pem)}</pre>`;
+    } else if (cert.pem) {
+      // We have the PEM but openssl failed — still show it
+      if (cert.error) {
+        html += `<div style="color:var(--amber);font-size:11px;margin-bottom:10px;">⚠️ OpenSSL parse warning: ${escHtml(cert.error)}</div>`;
+      }
+      html += `<pre class="cert-pem active" id="pem-${ci}">${escHtml(cert.pem)}</pre>`;
+    } else if (cert.error) {
+      html += `<div style="color:var(--red);">Extraction error: ${escHtml(cert.error)}</div>`;
+      if (cert.raw) {
+        html += `<pre style="margin-top:8px;font-size:10px;color:var(--text3);">${escHtml(cert.raw)}</pre>`;
+      }
+    }
+
+    html += `</div></div>`;
+  });
+
+  document.getElementById('modal-body').innerHTML = html;
+}
+
+function switchCertTab(btn, showId, hideId) {
+  document.getElementById(showId).classList.add('active');
+  document.getElementById(hideId).classList.remove('active');
+  btn.parentElement.querySelectorAll('.cert-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('cert-modal').classList.remove('open');
+}
+
+document.getElementById('cert-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('cert-modal')) closeModal();
+});
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

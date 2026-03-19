@@ -1,0 +1,10 @@
+services:
+  pcap-analyzer:
+    image: ghcr.io/kvarughese/pcap-analyzer:latest
+    build: .                          # ignored when pulling pre-built image
+    container_name: pcap-analyzer
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./captures:/tmp/pcap_uploads  # drop .pcap files here to pre-load them
+    restart: unless-stopped

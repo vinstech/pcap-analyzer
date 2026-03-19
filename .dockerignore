@@ -1,0 +1,12 @@
+captures/
+*.pcap
+*.pcapng
+*.cap
+.git/
+.gitignore
+.claude/
+__pycache__/
+*.py[cod]
+.DS_Store
+README.md
+CLAUDE.md

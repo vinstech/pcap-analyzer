@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# Captures (never commit real network traffic)
+captures/
+*.pcap
+*.pcapng
+*.cap
+
+# Temp / OS
+.DS_Store
+*.swp
+*.swo
+.env
+
+# Claude Code session data
+.claude/
