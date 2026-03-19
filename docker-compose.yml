@@ -1,7 +1,6 @@
 services:
   pcap-analyzer:
     image: ghcr.io/vinstech/pcap-analyzer:latest
-    build: .                          # ignored when pulling pre-built image
     container_name: pcap-analyzer
     ports:
       - "5000:5000"
