@@ -12,20 +12,20 @@ All three views show frame numbers you can cross-reference directly in Wireshark
 
 ```bash
 # Pull the image
-docker pull ghcr.io/kvarughese/pcap-analyzer:latest
+docker pull ghcr.io/vinstech/pcap-analyzer:latest
 
 # Run (creates a ./captures folder you can drop .pcap files into)
 docker run -d \
   --name pcap-analyzer \
   -p 5000:5000 \
   -v "$(pwd)/captures:/tmp/pcap_uploads" \
-  ghcr.io/kvarughese/pcap-analyzer:latest
+  ghcr.io/vinstech/pcap-analyzer:latest
 ```
 
 Or with Docker Compose:
 
 ```bash
-curl -O https://raw.githubusercontent.com/kvarughese/pcap-analyzer/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/vinstech/pcap-analyzer/main/docker-compose.yml
 docker compose up -d
 ```
 
@@ -34,7 +34,7 @@ Then open **http://localhost:5000**.
 ## Build from source
 
 ```bash
-git clone https://github.com/kvarughese/pcap-analyzer.git
+git clone https://github.com/vinstech/pcap-analyzer.git
 cd pcap-analyzer
 docker compose up --build
 ```
