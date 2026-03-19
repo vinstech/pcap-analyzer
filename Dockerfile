@@ -1,5 +1,9 @@
 FROM python:3.12-slim
 
+LABEL org.opencontainers.image.source="https://github.com/vinstech/pcap-analyzer"
+LABEL org.opencontainers.image.description="Web-based PCAP analyzer: SIP ladder, T.38 fax, TLS certs"
+LABEL org.opencontainers.image.licenses="MIT"
+
 # Install tshark and openssl (required at runtime for packet parsing)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tshark \
