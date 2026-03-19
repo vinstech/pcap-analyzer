@@ -12,14 +12,14 @@ All three views show frame numbers you can cross-reference directly in Wireshark
 
 ```bash
 # Pull the image
-docker pull ghcr.io/vinstech/pcap-analyzer:latest
+docker pull vinstech/pcap-analyzer:latest
 
 # Run (creates a ./captures folder you can drop .pcap files into)
 docker run -d \
   --name pcap-analyzer \
   -p 5000:5000 \
   -v "$(pwd)/captures:/tmp/pcap_uploads" \
-  ghcr.io/vinstech/pcap-analyzer:latest
+  vinstech/pcap-analyzer:latest
 ```
 
 Or with Docker Compose:

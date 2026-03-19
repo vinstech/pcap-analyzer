@@ -1,6 +1,6 @@
 services:
   pcap-analyzer:
-    image: ghcr.io/vinstech/pcap-analyzer:latest
+    image: vinstech/pcap-analyzer:latest
     container_name: pcap-analyzer
     ports:
       - "5000:5000"
